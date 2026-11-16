@@ -142,7 +142,7 @@ namespace InfocomWorkbench
 				"No story files found yet.",
 				"",
 				"Copy your Infocom story files",
-				"(.z3, .z4, .z5 or .dat) into:",
+				"(.z3, .z4, .z5, .z6 or .dat) into:",
 				"",
 			};
 			lines.AddRange(Chop(_gamesDir, 44));
@@ -206,10 +206,8 @@ namespace InfocomWorkbench
 				W = ScreenWidth,
 				H = Height - TitleBarHeight - 1,
 			};
-			win.Session = new GameSession(icon.Path, _savesDir);
-			int cols = win.TextW / TopazFont.Width;
-			int rows = win.TextH / TopazFont.Height - 1;
-			win.Session.Start(cols, rows);
+			win.Session = StorySessions.Create(icon.Path, _savesDir);
+			win.Session.Start(win.TextW, win.TextH);
 			_windows.Add(win);
 			_active = win;
 			_busyUntil = _time + 0.6;
@@ -261,7 +259,7 @@ namespace InfocomWorkbench
 			return null;
 		}
 
-		GameSession ActiveSession => _active?.Session;
+		IStorySession ActiveSession => _active?.Session;
 
 		// ================================================================ input
 
@@ -368,7 +366,11 @@ namespace InfocomWorkbench
 					_dragWindow = win;
 					_dragDX = win.W - lx;
 					_dragDY = win.H - ly;
+					return;
 				}
+				// Clicks in the text area go to the story (version 6 games use the mouse).
+				if (win.Session != null && x >= win.TextX && y >= win.TextY && x < win.TextX + win.TextW && y < win.TextY + win.TextH)
+					win.Session.Click(x - win.TextX, y - win.TextY);
 				return;
 			}
 
@@ -529,7 +531,7 @@ namespace InfocomWorkbench
 				"Infocom stories, Workbench 1.3 style",
 				"",
 				"Z-machine:  ZMachineLib by Brian Peek (MIT),",
-				"            patched for this player",
+				"            reworked for v1-6 in this player",
 				"Font:       Topaz recreation by dMG/TrueSchool",
 				"",
 				"Story files:",
@@ -718,7 +720,7 @@ namespace InfocomWorkbench
 		{
 			public int X, Y, W, H;
 			public string Title;
-			public GameSession Session;
+			public IStorySession Session;
 			public string[] InfoLines;
 			public bool GuruShown;
 
