@@ -8,7 +8,8 @@ namespace InfocomWorkbench
 	/// pixel screen, each with its own position, size, cursor, margins, colours, style and
 	/// attributes. Text is drawn here in Topaz as it is printed, like Infocom's own
 	/// interpreters, so the screen is just pixels. Each pixel holds a Z-machine colour
-	/// number (2-12); the session maps them to pens when it copies the screen out.
+	/// number (2-12), or 16 + a picture colour register (0-15); the session maps them to
+	/// pens when it copies the screen out.
 	/// Plain C#, not thread safe: the session locks around every call.
 	/// </summary>
 	public sealed class V6Screen
@@ -52,6 +53,15 @@ namespace InfocomWorkbench
 		/// <summary>A newline-interrupt routine (packed address) that has come due, or 0.</summary>
 		public int PendingInterrupt;
 
+		/// <summary>The story's pictures, or null to run as text only.</summary>
+		public AmigaPictureFile Pictures;
+
+		/// <summary>Picture colour registers 0-15 (RGB). Pictures with a palette set 2 and up.</summary>
+		public readonly uint[] Registers = new uint[16];
+
+		/// <summary>Amiga pictures are low-res: each picture pixel is this many screen pixels wide.</summary>
+		public const int PictureXScale = 2;
+
 		readonly List<Cell> _word = new List<Cell>();
 		int _wordWindow;
 
@@ -84,6 +94,82 @@ namespace InfocomWorkbench
 			PendingInterrupt = 0;
 			for (int i = 0; i < Pixels.Length; i++)
 				Pixels[i] = DefaultBg;
+			Registers[0] = 0x000000;
+			Registers[1] = 0xFFFFFF;
+		}
+
+		// ---------------------------------------------------------------- pictures
+
+		public bool PictureData(int number, out int height, out int width)
+		{
+			height = width = 0;
+			if (Pictures == null)
+				return false;
+			if (number == 0)
+			{
+				height = Pictures.Count;
+				width = Pictures.Version;
+				return Pictures.Count > 0;
+			}
+			if (!Pictures.TryGetEntry(number, out var e))
+			{
+				// What Infocom's Amiga interpreter answers for a picture it doesn't have.
+				height = width = 16;
+				return false;
+			}
+			height = e.Height;
+			width = e.Width * PictureXScale;
+			return true;
+		}
+
+		void PicturePosition(int y, int x, out Win w, out int px, out int py)
+		{
+			w = Cur;
+			if (y == 0) y = w.CursorY;
+			if (x == 0) x = w.CursorX;
+			px = w.X - 1 + x - 1;
+			py = w.Y - 1 + y - 1;
+		}
+
+		public void DrawPicture(int number, int y, int x)
+		{
+			Flush();
+			var pic = Pictures?.Get(number);
+			if (pic == null)
+				return;
+			if (pic.Palette != null)
+				for (int i = 0; i < pic.Palette.Length && i + 2 < 16; i++)
+					Registers[i + 2] = pic.Palette[i];
+			PicturePosition(y, x, out var w, out int px, out int py);
+			int clipX0 = Math.Max(0, w.X - 1), clipY0 = Math.Max(0, w.Y - 1);
+			int clipX1 = Math.Min(Width, w.X - 1 + w.W), clipY1 = Math.Min(Height, w.Y - 1 + w.H);
+			for (int row = 0; row < pic.Height; row++)
+			{
+				int sy = py + row;
+				if (sy < clipY0 || sy >= clipY1)
+					continue;
+				for (int col = 0; col < pic.Width; col++)
+				{
+					byte c = pic.Pixels[row * pic.Width + col];
+					if (c == 0 && pic.Transparent)
+						continue;
+					for (int k = 0; k < PictureXScale; k++)
+					{
+						int sx = px + col * PictureXScale + k;
+						if (sx >= clipX0 && sx < clipX1)
+							Pixels[sy * Width + sx] = (byte)(16 + c);
+					}
+				}
+			}
+		}
+
+		public void ErasePicture(int number, int y, int x)
+		{
+			Flush();
+			if (Pictures == null || !Pictures.TryGetEntry(number, out var e))
+				return;
+			PicturePosition(y, x, out var w, out int px, out int py);
+			FillWindowRect(w, px - (w.X - 1) + 1, py - (w.Y - 1) + 1, e.Width * PictureXScale, e.Height, w.Bg);
 		}
 
 		public Win Cur => Windows[Current];

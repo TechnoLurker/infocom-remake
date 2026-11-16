@@ -2,7 +2,7 @@ using System;
 
 namespace InfocomWorkbench
 {
-	/// <summary>Colour indices. 0-3 are the Workbench 1.3 screen colours, 4-6 the mouse pointer, 7-8 the Guru alert, 9-19 Z-machine colours.</summary>
+	/// <summary>Colour indices. 0-3 are the Workbench 1.3 screen colours, 4-6 the mouse pointer, 7-8 the Guru alert, 9-19 Z-machine colours, 20-35 a version 6 story's picture colours.</summary>
 	public static class Pen
 	{
 		public const byte Blue = 0;
@@ -17,6 +17,9 @@ namespace InfocomWorkbench
 
 		/// <summary>Pens 9-19 are the Z-machine colours 2-12, for version 6 stories.</summary>
 		public const byte ZColourBase = 9;
+
+		/// <summary>Pens 20-35 are the colour registers of a version 6 story's pictures. They change as pictures load.</summary>
+		public const byte StoryRegisterBase = 20;
 
 		public static byte ForZColour(int z)
 		{
@@ -35,6 +38,8 @@ namespace InfocomWorkbench
 			// light grey, medium grey, dark grey.
 			0x000000, 0xDD2222, 0x22BB22, 0xEEDD22, 0x0055AA, 0xCC33CC, 0x22CCCC, 0xFFFFFF,
 			0xBBBBBB, 0x888888, 0x555555,
+			// Story picture registers 0-15 (set by V6Session).
+			0x000000, 0xFFFFFF, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
 		};
 	}
 

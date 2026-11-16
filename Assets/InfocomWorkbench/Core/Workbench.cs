@@ -207,6 +207,13 @@ namespace InfocomWorkbench
 				H = Height - TitleBarHeight - 1,
 			};
 			win.Session = StorySessions.Create(icon.Path, _savesDir);
+			if (win.Session.Version == 6)
+			{
+				// Version 6 stories lay out a whole screen of their own, pictures and all.
+				win.OwnScreen = true;
+				win.Y = 0;
+				win.H = Height;
+			}
 			win.Session.Start(win.TextW, win.TextH);
 			_windows.Add(win);
 			_active = win;
@@ -333,6 +340,12 @@ namespace InfocomWorkbench
 			}
 
 			var win = WindowAt(x, y);
+			if (win != null && win.OwnScreen)
+			{
+				_active = win;
+				win.Session?.Click(x - win.TextX, y - win.TextY);
+				return;
+			}
 			if (win != null)
 			{
 				_active = win;
@@ -474,7 +487,13 @@ namespace InfocomWorkbench
 					new MenuItem("Restore", () => session.InjectCommand("restore"), waiting),
 					new MenuItem("Restart", () => session.InjectCommand("restart"), waiting),
 					new MenuItem("Quit story", () => session.InjectCommand("quit"), waiting),
-					new MenuItem("Close window", () => CloseWindow(_active))));
+					new MenuItem("Close window", () => CloseWindow(_active)),
+					new MenuItem("Workbench to front", () =>
+					{
+						var story = _active;
+						SendToBack(story);
+						_active = _windows.Count > 1 ? _windows[_windows.Count - 1] : null;
+					}, _active.OwnScreen)));
 			}
 
 			_menus.Add(new Menu("Display",
@@ -610,6 +629,13 @@ namespace InfocomWorkbench
 		void DrawWindow(FrameBuffer fb, Window w)
 		{
 			bool active = w == _active;
+			if (w.OwnScreen)
+			{
+				fb.SetClip(w.X, w.Y, w.W, w.H);
+				w.Session?.Draw(fb, w.X, w.Y, w.W, w.H, active);
+				fb.ResetClip();
+				return;
+			}
 			fb.SetClip(w.X, w.Y, w.W, w.H);
 			fb.Fill(w.X, w.Y, w.W, w.H, Pen.Blue);
 
@@ -723,11 +749,13 @@ namespace InfocomWorkbench
 			public IStorySession Session;
 			public string[] InfoLines;
 			public bool GuruShown;
+			/// <summary>A story with its own full screen and no window frame, as Infocom's version 6 interpreters ran.</summary>
+			public bool OwnScreen;
 
-			public int TextX => X + 4;
-			public int TextY => Y + TitleBarHeight + 1;
-			public int TextW => W - 8;
-			public int TextH => H - TitleBarHeight - 4;
+			public int TextX => OwnScreen ? X : X + 4;
+			public int TextY => OwnScreen ? Y : Y + TitleBarHeight + 1;
+			public int TextW => OwnScreen ? W : W - 8;
+			public int TextH => OwnScreen ? H : H - TitleBarHeight - 4;
 
 			public bool Contains(int x, int y) => x >= X && y >= Y && x < X + W && y < Y + H;
 		}

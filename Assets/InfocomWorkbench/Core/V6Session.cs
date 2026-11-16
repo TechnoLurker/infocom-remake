@@ -62,6 +62,14 @@ namespace InfocomWorkbench
 		public void Start(int width, int height)
 		{
 			_screen = new V6Screen(width, height, 9, 6) { More = WaitForMore };
+			try
+			{
+				_screen.Pictures = AmigaPictureFile.FindFor(StoryPath);
+			}
+			catch (Exception)
+			{
+				_screen.Pictures = null;
+			}
 			byte[] story;
 			try
 			{
@@ -117,13 +125,18 @@ namespace InfocomWorkbench
 			{
 				if (_screen == null)
 					return;
+				for (int i = 0; i < 16; i++)
+					Pen.Rgb[Pen.StoryRegisterBase + i] = _screen.Registers[i];
 				int sw = Math.Min(w, _screen.Width), sh = Math.Min(h, _screen.Height);
 				byte[] src = _screen.Pixels;
 				for (int yy = 0; yy < sh; yy++)
 				{
 					int row = yy * _screen.Width;
 					for (int xx = 0; xx < sw; xx++)
-						fb.Plot(x + xx, y + yy, Pen.ForZColour(src[row + xx]));
+					{
+						byte v = src[row + xx];
+						fb.Plot(x + xx, y + yy, v >= 16 ? (byte)(Pen.StoryRegisterBase + (v & 15)) : Pen.ForZColour(v));
+					}
 				}
 				// Window bigger than the story's screen: the rest is the default background.
 				if (w > sw)
@@ -334,7 +347,7 @@ namespace InfocomWorkbench
 		public byte DefaultForeground => _screen.DefaultFg;
 		public byte DefaultBackground => _screen.DefaultBg;
 		public bool ColoursAvailable => true;
-		public bool PicturesAvailable => false;
+		public bool PicturesAvailable => _screen.Pictures != null;
 		public int CurrentWindow { get { lock (_lock) return _screen.Current; } }
 
 		public void Reset() { lock (_lock) _screen.Reset(); }
@@ -377,16 +390,9 @@ namespace InfocomWorkbench
 		public int BufferScreen(int mode) => 0;
 		public int TextWidth(string s) => s.Length * V6Screen.FontWidth;
 
-		public bool PictureData(int picture, out int height, out int width)
-		{
-			// Pictures come later, from the Amiga picture files.
-			height = 0;
-			width = 0;
-			return false;
-		}
-
-		public void DrawPicture(int picture, int y, int x) { }
-		public void ErasePicture(int picture, int y, int x) { }
+		public bool PictureData(int picture, out int height, out int width) { lock (_lock) return _screen.PictureData(picture, out height, out width); }
+		public void DrawPicture(int picture, int y, int x) { lock (_lock) _screen.DrawPicture(picture, y, x); }
+		public void ErasePicture(int picture, int y, int x) { lock (_lock) _screen.ErasePicture(picture, y, x); }
 
 		public void GetMouse(out int y, out int x, out int buttons, out int menu)
 		{

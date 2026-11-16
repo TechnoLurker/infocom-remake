@@ -100,6 +100,13 @@ namespace InfocomWorkbench
 			_wb.Update(Time.unscaledTimeAsDouble);
 			_wb.Render();
 
+			// Version 6 pictures change their colour registers as they load, so refresh the palette.
+			for (int i = 0; i < Pen.Rgb.Length && i < _palette.Length; i++)
+			{
+				uint c = Pen.Rgb[i];
+				_palette[i] = new Color32((byte)(c >> 16), (byte)(c >> 8), (byte)c, 255);
+			}
+
 			// Indexed pixels to colours. Texture rows run bottom-up, the frame buffer top-down.
 			var fb = _wb.Frame;
 			byte[] src = fb.Pixels;
