@@ -14,15 +14,15 @@ namespace InfocomWorkbench
 	/// the Workbench (main thread) feeds it keystrokes and draws its text.
 	/// Everything shared between the two threads is guarded by _lock.
 	/// </summary>
-	public sealed class GameSession : IZMachineIO
+	public sealed class GameSession : IZMachineIO, IStorySession
 	{
 		const int MaxScrollback = 2000;
 
 		readonly object _lock = new object();
 		readonly AutoResetEvent _ready = new AutoResetEvent(false);
 
-		public readonly string StoryPath;
-		public readonly string Title;
+		public string StoryPath { get; }
+		public string Title { get; }
 		readonly string _savesDir;
 
 		ZMachine _zm;
@@ -79,7 +79,16 @@ namespace InfocomWorkbench
 
 		// ---------------------------------------------------------------- lifecycle
 
-		public void Start(int columns, int rows)
+		public void Start(int width, int height)
+		{
+			StartGrid(width / TopazFont.Width, height / TopazFont.Height - 1);
+		}
+
+		public void Click(int x, int y)
+		{
+		}
+
+		void StartGrid(int columns, int rows)
 		{
 			_cols = Math.Max(20, Math.Min(255, columns));
 			byte[] story;
@@ -590,6 +599,37 @@ namespace InfocomWorkbench
 			_grid = grid;
 			_gridReverse = rev;
 			_upperRows = rows;
+		}
+
+		public void GetCursor(out ushort line, out ushort column)
+		{
+			lock (_lock)
+			{
+				if (_window == 1)
+				{
+					line = (ushort)(_curRow + 1);
+					column = (ushort)(_curCol + 1);
+				}
+				else
+				{
+					line = (ushort)(_upperRows + Math.Max(1, _lastLowerRows));
+					column = (ushort)(_current.Length % Math.Max(1, _cols) + 1);
+				}
+			}
+		}
+
+		public void EraseLine()
+		{
+			lock (_lock)
+			{
+				if (_window != 1 || _curRow < 0 || _curRow >= _upperRows)
+					return;
+				for (int c = Math.Max(0, _curCol); c < _cols; c++)
+				{
+					_grid[_curRow, c] = ' ';
+					_gridReverse[_curRow, c] = false;
+				}
+			}
 		}
 
 		public void BufferMode(bool buffer)

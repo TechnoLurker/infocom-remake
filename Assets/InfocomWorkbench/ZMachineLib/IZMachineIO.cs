@@ -34,5 +34,9 @@ namespace ZMachineLib
 		// Added for the Workbench player: v1-3 games never call show_status,
 		// so the interpreter must draw the status line itself before each input.
 		void UpdateStatusLine(string location, short scoreOrHours, short movesOrMinutes, bool isTimeGame);
+
+		// Added for get_cursor, print_table and erase_line in v4-5 stories.
+		void GetCursor(out ushort line, out ushort column);
+		void EraseLine();
 	}
 }

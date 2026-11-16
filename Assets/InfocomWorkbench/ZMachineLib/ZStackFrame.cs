@@ -1,27 +1,39 @@
 using System.Collections.Generic;
-using System.Runtime.Serialization;
 
 namespace ZMachineLib
 {
-	[DataContract]
 	internal class ZStackFrame
 	{
-		[DataMember]
 		public uint PC { get; set; }
-		[DataMember]
 		public Stack<ushort> RoutineStack { get; set; }
-		[DataMember]
 		public ushort[] Variables { get; set; }
-		[DataMember]
 		public bool StoreResult { get; set; }
-		[DataMember]
 		public int ArgumentCount { get; set; }
+
+		// Patched: an interrupt routine (timed input, newline countdown) called by the interpreter
+		// itself. Its return value goes back to the interpreter, not into a variable.
+		public bool Interrupt { get; set; }
 
 		public ZStackFrame()
 		{
 			Variables = new ushort[0x10];
 			RoutineStack = new Stack<ushort>();
 			StoreResult = true;
+		}
+
+		public ZStackFrame Clone()
+		{
+			var values = RoutineStack.ToArray();
+			System.Array.Reverse(values);
+			return new ZStackFrame
+			{
+				PC = PC,
+				RoutineStack = new Stack<ushort>(values),
+				Variables = (ushort[])Variables.Clone(),
+				StoreResult = StoreResult,
+				ArgumentCount = ArgumentCount,
+				Interrupt = Interrupt,
+			};
 		}
 	}
 }
