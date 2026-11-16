@@ -5,7 +5,7 @@ Play Infocom story files in a Unity app that looks like Amiga Workbench 1.3.
 ## Set up
 
 1. Clone this repository.
-2. In Unity Hub choose **Add > Add project from disk** and pick the repository folder. Use Unity 2021.3 or newer. On first open Unity creates `ProjectSettings`, `Packages` and a `.meta` file for each asset; commit those.
+2. In Unity Hub choose **Add > Add project from disk** and pick the repository folder. The project is pinned to **Unity 6000.6.9f1** (newest Unity 6.6 release as of November 2026; see `ProjectSettings/ProjectVersion.txt`), so Hub will offer to install it. On first open Unity fills in the rest of `ProjectSettings`, creates `Packages` and a `.meta` file for each asset; commit those.
 3. Make a folder called `Games` in the repository root (beside `Assets`; Unity creates it on first run if you skip this) and copy your story files into it: `.z3`, `.z4`, `.z5`, `.z6`, `.dat` or `.data`. The icon label is the file name, so rename them how you like (for example `Zork I.z3`). `Games` and `Saves` are ignored by git, so story files never get committed.
    For Zork Zero, also copy `Pic.data` from the Amiga Zork Zero disk into `Games`, named like the story with `.pic` on the end (for example `Zork Zero.z6` and `Zork Zero.pic`). A file just called `Pic.data` in the same folder works too.
 4. Press Play. No scene setup is needed: the Workbench starts by itself in any scene.

@@ -27,22 +27,33 @@ namespace InfocomWorkbench
 		const string PrefPal = "InfocomWorkbench.Pal";
 		const string PrefTall = "InfocomWorkbench.TallPixels";
 
+		static WorkbenchHost _instance;
+
+		// Unity 6 can enter Play mode without reloading scripts, so statics must be reset by hand.
+		[RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.SubsystemRegistration)]
+		static void ResetStatics()
+		{
+			_instance = null;
+		}
+
 		[RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.AfterSceneLoad)]
 		static void AutoStart()
 		{
-#if UNITY_2022_2_OR_NEWER
-			if (FindFirstObjectByType<WorkbenchHost>() != null)
+			// A host placed in the scene by hand wins; otherwise make one.
+			if (_instance != null)
 				return;
-#else
-			if (FindObjectOfType<WorkbenchHost>() != null)
-				return;
-#endif
 			var go = new GameObject("Infocom Workbench");
 			go.AddComponent<WorkbenchHost>();
 		}
 
 		void Awake()
 		{
+			if (_instance != null && _instance != this)
+			{
+				Destroy(gameObject);
+				return;
+			}
+			_instance = this;
 			DontDestroyOnLoad(gameObject);
 			Application.targetFrameRate = 60;
 			Application.runInBackground = true;
@@ -97,6 +108,8 @@ namespace InfocomWorkbench
 
 		void Update()
 		{
+			if (_wb == null)
+				return;
 			_wb.Update(Time.unscaledTimeAsDouble);
 			_wb.Render();
 
@@ -224,6 +237,9 @@ namespace InfocomWorkbench
 
 		void OnDestroy()
 		{
+			if (_instance != this)
+				return;
+			_instance = null;
 			if (!_quitting)
 				_wb?.Shutdown();
 			Cursor.visible = true;
