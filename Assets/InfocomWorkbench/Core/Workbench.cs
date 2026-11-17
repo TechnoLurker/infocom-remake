@@ -197,8 +197,9 @@ namespace InfocomWorkbench
 
 		void LayoutIcons()
 		{
-			// Alphabetical, in columns down the right-hand side, each further column to the left.
-			// The columns are balanced, and the last one sits at the bottom, so the Z titles end in the bottom-left corner.
+			// Alphabetical, in columns on the right-hand side of the screen: A starts at the top of the leftmost
+			// column and each column runs top to bottom, moving right. The columns are balanced, and the last one
+			// sits at the bottom, so the Z titles end in the bottom-right corner.
 			int n = _icons.Count;
 			if (n == 0)
 				return;
@@ -213,7 +214,7 @@ namespace InfocomWorkbench
 				int col = i / rows, row = i % rows;
 				if (col == cols - 1)
 					row += rows - inLast;
-				_icons[i].X = ScreenWidth - (col + 1) * cellW + (cellW - DiskIcon.ArtWidth) / 2;
+				_icons[i].X = ScreenWidth - (cols - col) * cellW + (cellW - _icons[i].ArtWidth) / 2;
 				_icons[i].Y = top + row * IconCellH;
 			}
 		}
@@ -226,7 +227,7 @@ namespace InfocomWorkbench
 			int cols = Math.Max(1, (w.TextW - 8) / cellW);
 			for (int i = 0; i < icons.Count; i++)
 			{
-				icons[i].X = 4 + (i % cols) * cellW + (cellW - DiskIcon.ArtWidth) / 2;
+				icons[i].X = 4 + (i % cols) * cellW + (cellW - icons[i].ArtWidth) / 2;
 				icons[i].Y = 4 + (i / cols) * IconCellH;
 			}
 		}
@@ -464,7 +465,7 @@ namespace InfocomWorkbench
 						_dragMoved = true;
 					if (_dragMoved)
 					{
-						_dragIcon.X = Math.Max(0, Math.Min(ScreenWidth - DiskIcon.ArtWidth, x - _dragDX));
+						_dragIcon.X = Math.Max(0, Math.Min(ScreenWidth - _dragIcon.ArtWidth, x - _dragDX));
 						_dragIcon.Y = Math.Max(TitleBarHeight, Math.Min(Height - 24, y - _dragDY));
 					}
 					break;
@@ -755,10 +756,14 @@ namespace InfocomWorkbench
 		{
 			bool selected = icon == _selected;
 			int x = ox + icon.X, y = oy + icon.Y;
-			fb.Sprite(x, y, icon.IsDrawer ? Art.Drawer : Art.Disk, Art.PenFor, 1, selected);
+			// A drawer shows open while its window is on screen, as on the real Workbench.
+			string[] art = !icon.IsDrawer ? Art.Disk
+				: _windows.Any(w => w.Drawer == icon) ? Art.DrawerOpen
+				: Art.DrawerClosed;
+			fb.Sprite(x, y, art, Art.PenFor, 1, selected);
 			int labelW = icon.Label.Length * TopazFont.Width;
-			int lx = x + DiskIcon.ArtWidth / 2 - labelW / 2;
-			fb.Text(lx, y + Art.Disk.Length + 2, icon.Label, Pen.White, selected ? Pen.Black : -1);
+			int lx = x + icon.ArtWidth / 2 - labelW / 2;
+			fb.Text(lx, y + icon.ArtHeight + 2, icon.Label, Pen.White, selected ? Pen.Black : -1);
 		}
 
 		void DrawDepthGadgets(FrameBuffer fb, int x, int y, bool onWhite)
@@ -922,7 +927,9 @@ namespace InfocomWorkbench
 
 		sealed class DiskIcon
 		{
-			public const int ArtWidth = 30;
+			/// <summary>Size of the icon's picture: a disk, or a drawer (open or closed, both fit this box).</summary>
+			public int ArtWidth => IsDrawer ? Art.DrawerOpen[0].Length : Art.Disk[0].Length;
+			public int ArtHeight => IsDrawer ? Art.DrawerOpen.Length : Art.Disk.Length;
 			/// <summary>The story file, or for a drawer the folder (null for a series drawer).</summary>
 			public string Path;
 			public string Label;
@@ -934,11 +941,11 @@ namespace InfocomWorkbench
 
 			public bool Contains(int x, int y)
 			{
-				if (x >= X && x < X + ArtWidth && y >= Y && y < Y + 16)
+				if (x >= X && x < X + ArtWidth && y >= Y && y < Y + ArtHeight + 1)
 					return true;
 				int labelW = Label.Length * TopazFont.Width;
 				int lx = X + ArtWidth / 2 - labelW / 2;
-				return x >= lx && x < lx + labelW && y >= Y + 16 && y < Y + 26;
+				return x >= lx && x < lx + labelW && y >= Y + ArtHeight + 1 && y < Y + ArtHeight + 11;
 			}
 		}
 
