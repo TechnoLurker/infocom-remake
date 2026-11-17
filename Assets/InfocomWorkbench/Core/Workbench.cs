@@ -197,8 +197,9 @@ namespace InfocomWorkbench
 
 		void LayoutIcons()
 		{
-			// Alphabetical, in columns down the right-hand side, each further column to the left.
-			// The columns are balanced, and the last one sits at the bottom, so the Z titles end in the bottom-left corner.
+			// Alphabetical, in columns on the right-hand side of the screen: A starts at the top of the leftmost
+			// column and each column runs top to bottom, moving right. The columns are balanced, and the last one
+			// sits at the bottom, so the Z titles end in the bottom-right corner.
 			int n = _icons.Count;
 			if (n == 0)
 				return;
@@ -213,7 +214,7 @@ namespace InfocomWorkbench
 				int col = i / rows, row = i % rows;
 				if (col == cols - 1)
 					row += rows - inLast;
-				_icons[i].X = ScreenWidth - (col + 1) * cellW + (cellW - _icons[i].ArtWidth) / 2;
+				_icons[i].X = ScreenWidth - (cols - col) * cellW + (cellW - _icons[i].ArtWidth) / 2;
 				_icons[i].Y = top + row * IconCellH;
 			}
 		}
