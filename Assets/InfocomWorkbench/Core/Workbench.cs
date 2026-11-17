@@ -756,11 +756,15 @@ namespace InfocomWorkbench
 		{
 			bool selected = icon == _selected;
 			int x = ox + icon.X, y = oy + icon.Y;
-			// A drawer shows open while its window is on screen, as on the real Workbench.
-			string[] art = !icon.IsDrawer ? Art.Disk
-				: _windows.Any(w => w.Drawer == icon) ? Art.DrawerOpen
-				: Art.DrawerClosed;
-			fb.Sprite(x, y, art, Art.PenFor, 1, selected);
+			if (icon.IsDrawer)
+			{
+				// Drawers have a second picture instead of inverted colours, as on the real Workbench:
+				// clicking one pulls the drawer out, and it stays out while its window is on screen.
+				bool open = selected || _windows.Any(w => w.Drawer == icon);
+				fb.Sprite(x, y, open ? Art.DrawerOpen : Art.DrawerClosed, Art.PenFor);
+			}
+			else
+				fb.Sprite(x, y, Art.Disk, Art.PenFor, 1, selected);
 			int labelW = icon.Label.Length * TopazFont.Width;
 			int lx = x + icon.ArtWidth / 2 - labelW / 2;
 			fb.Text(lx, y + icon.ArtHeight + 2, icon.Label, Pen.White, selected ? Pen.Black : -1);
