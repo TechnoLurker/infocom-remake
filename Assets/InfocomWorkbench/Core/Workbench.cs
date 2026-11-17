@@ -9,6 +9,7 @@ namespace InfocomWorkbench
 
 	/// <summary>
 	/// The whole Workbench 1.3 style desktop: screen title bar, disk icons (one per story file),
+	/// drawers (one per series or sub-folder of Games) that open into windows of icons,
 	/// windows with Intuition-style gadgets, right-mouse menus and the Guru Meditation alert.
 	/// It knows nothing about Unity: a host feeds it mouse and keys and copies Frame to the display.
 	/// </summary>
@@ -46,6 +47,7 @@ namespace InfocomWorkbench
 		bool _dragMoved;
 		double _lastClickTime = -10;
 		DiskIcon _lastClickIcon;
+		DiskIcon _selected;
 		double _busyUntil;
 
 		bool _menuOpen;
@@ -77,13 +79,15 @@ namespace InfocomWorkbench
 
 		public void Rescan()
 		{
+			_windows.RemoveAll(w => w.Drawer != null);
+			if (_active != null && !_windows.Contains(_active))
+				_active = _windows.Count > 0 ? _windows[_windows.Count - 1] : null;
 			_icons.Clear();
+			_selected = _lastClickIcon = null;
 			try
 			{
 				Directory.CreateDirectory(_gamesDir);
-				foreach (string path in Directory.GetFiles(_gamesDir).OrderBy(p => p, StringComparer.OrdinalIgnoreCase))
-					if (LooksLikeStory(path))
-						_icons.Add(new DiskIcon { Path = path, Label = System.IO.Path.GetFileNameWithoutExtension(path) });
+				_icons.AddRange(ScanFolder(_gamesDir, true));
 			}
 			catch (Exception)
 			{
@@ -92,6 +96,71 @@ namespace InfocomWorkbench
 			LayoutIcons();
 			if (_icons.Count == 0)
 				OpenInfo("Games", NoGamesText());
+		}
+
+		/// <summary>
+		/// Story files become disks and sub-folders become drawers, as on a real Workbench disk.
+		/// At the top level, loose files from a known series are also gathered into a drawer of their own.
+		/// </summary>
+		static List<DiskIcon> ScanFolder(string dir, bool groupSeries)
+		{
+			var items = new List<DiskIcon>();
+			foreach (string path in Directory.GetFiles(dir))
+				if (LooksLikeStory(path))
+					items.Add(new DiskIcon { Path = path, Label = System.IO.Path.GetFileNameWithoutExtension(path) });
+			foreach (string sub in Directory.GetDirectories(dir))
+			{
+				try
+				{
+					var children = ScanFolder(sub, false);
+					if (children.Count > 0)
+						items.Add(new DiskIcon { Path = sub, Label = System.IO.Path.GetFileName(sub), Children = children });
+				}
+				catch (Exception)
+				{
+					// Skip folders we can't read.
+				}
+			}
+			if (groupSeries)
+				GroupSeries(items);
+			SortIcons(items);
+			return items;
+		}
+
+		/// <summary>Series that get a drawer of their own. A name matches when, ignoring case, spaces and punctuation, it starts with one of the prefixes.</summary>
+		static readonly Series[] KnownSeries =
+		{
+			new Series("Zork", "zork", "beyondzork"),
+			new Series("Enchanter", "enchanter", "sorcerer", "spellbreaker"),
+			new Series("Planetfall", "planetfall", "stationfall"),
+		};
+
+		static void GroupSeries(List<DiskIcon> items)
+		{
+			foreach (var series in KnownSeries)
+			{
+				var members = items.Where(i => !i.IsDrawer && series.Matches(i.Label)).ToList();
+				var drawer = items.FirstOrDefault(i => i.IsDrawer && string.Equals(i.Label, series.Name, StringComparison.OrdinalIgnoreCase));
+				// One game on its own stays a disk; a drawer is for two or more.
+				if (members.Count == 0 || drawer == null && members.Count < 2)
+					continue;
+				if (drawer == null)
+				{
+					drawer = new DiskIcon { Label = series.Name, Children = new List<DiskIcon>() };
+					items.Add(drawer);
+				}
+				foreach (var m in members)
+				{
+					items.Remove(m);
+					drawer.Children.Add(m);
+				}
+				SortIcons(drawer.Children);
+			}
+		}
+
+		static void SortIcons(List<DiskIcon> items)
+		{
+			items.Sort((a, b) => StringComparer.OrdinalIgnoreCase.Compare(a.Label, b.Label));
 		}
 
 		static bool LooksLikeStory(string path)
@@ -117,21 +186,48 @@ namespace InfocomWorkbench
 			}
 		}
 
+		const int IconCellH = 30;
+
+		/// <summary>Column width that keeps the longest label in a set clear of its neighbours.</summary>
+		static int CellWidth(List<DiskIcon> icons)
+		{
+			int longest = icons.Count == 0 ? 0 : icons.Max(i => i.Label.Length);
+			return Math.Max(84, longest * TopazFont.Width + 12);
+		}
+
 		void LayoutIcons()
 		{
-			// Like disks on the Workbench: a column down the right-hand side, then further columns leftwards.
-			const int cellW = 84, cellH = 30;
-			int x = ScreenWidth - cellW, y = TitleBarHeight + 6;
-			foreach (var icon in _icons)
+			// Alphabetical, in columns down the right-hand side, each further column to the left.
+			// The columns are balanced, and the last one sits at the bottom, so the Z titles end in the bottom-left corner.
+			int n = _icons.Count;
+			if (n == 0)
+				return;
+			int cellW = CellWidth(_icons);
+			int top = TitleBarHeight + 6;
+			int maxRows = Math.Max(1, (Height - top) / IconCellH);
+			int cols = (n + maxRows - 1) / maxRows;
+			int rows = (n + cols - 1) / cols;
+			int inLast = n - (cols - 1) * rows;
+			for (int i = 0; i < n; i++)
 			{
-				if (y + cellH > Height)
-				{
-					y = TitleBarHeight + 6;
-					x -= cellW;
-				}
-				icon.X = x + (cellW - DiskIcon.ArtWidth) / 2;
-				icon.Y = y;
-				y += cellH;
+				int col = i / rows, row = i % rows;
+				if (col == cols - 1)
+					row += rows - inLast;
+				_icons[i].X = ScreenWidth - (col + 1) * cellW + (cellW - DiskIcon.ArtWidth) / 2;
+				_icons[i].Y = top + row * IconCellH;
+			}
+		}
+
+		/// <summary>Icons inside a drawer window: alphabetical in rows, left to right, re-flowed to the window's width.</summary>
+		static void LayoutDrawer(Window w)
+		{
+			var icons = w.Drawer.Children;
+			int cellW = CellWidth(icons);
+			int cols = Math.Max(1, (w.TextW - 8) / cellW);
+			for (int i = 0; i < icons.Count; i++)
+			{
+				icons[i].X = 4 + (i % cols) * cellW + (cellW - DiskIcon.ArtWidth) / 2;
+				icons[i].Y = 4 + (i / cols) * IconCellH;
 			}
 		}
 
@@ -168,7 +264,7 @@ namespace InfocomWorkbench
 
 		Window OpenInfo(string title, string[] lines)
 		{
-			var existing = _windows.FirstOrDefault(w => w.Title == title && w.Session == null);
+			var existing = _windows.FirstOrDefault(w => w.Title == title && w.InfoLines != null);
 			if (existing != null)
 				_windows.Remove(existing);
 			int width = Math.Min(ScreenWidth - 40, Math.Max(200, lines.Max(l => l.Length) * 8 + 24));
@@ -186,6 +282,44 @@ namespace InfocomWorkbench
 			_windows.Add(win);
 			_active = win;
 			return win;
+		}
+
+		void OpenIcon(DiskIcon icon)
+		{
+			if (icon == null)
+				return;
+			if (icon.IsDrawer)
+				OpenDrawer(icon);
+			else
+				OpenStory(icon);
+		}
+
+		void OpenDrawer(DiskIcon drawer)
+		{
+			var open = _windows.FirstOrDefault(w => w.Drawer == drawer);
+			if (open != null)
+			{
+				BringToFront(open);
+				_active = open;
+				return;
+			}
+			int cellW = CellWidth(drawer.Children);
+			int n = drawer.Children.Count;
+			int cols = Math.Max(1, Math.Min(n, Math.Min(4, (ScreenWidth - 40) / cellW)));
+			int rows = (n + cols - 1) / cols;
+			int cascade = _windows.Count(w => w.Drawer != null);
+			var win = new Window
+			{
+				Title = drawer.Label,
+				Drawer = drawer,
+				W = Math.Max(160, cols * cellW + 16),
+				H = TitleBarHeight + 4 + 8 + rows * IconCellH,
+				X = 24 + cascade * 16,
+				Y = TitleBarHeight + 8 + cascade * 12,
+			};
+			ClampWindow(win);
+			_windows.Add(win);
+			_active = win;
 		}
 
 		void OpenStory(DiskIcon icon)
@@ -258,12 +392,29 @@ namespace InfocomWorkbench
 			return null;
 		}
 
-		DiskIcon IconAt(int x, int y)
+		static DiskIcon IconAt(List<DiskIcon> icons, int x, int y)
 		{
-			for (int i = _icons.Count - 1; i >= 0; i--)
-				if (_icons[i].Contains(x, y))
-					return _icons[i];
+			for (int i = icons.Count - 1; i >= 0; i--)
+				if (icons[i].Contains(x, y))
+					return icons[i];
 			return null;
+		}
+
+		/// <summary>Selects an icon (or nothing), and opens it on a double click. Returns true if it opened.</summary>
+		bool ClickIcon(DiskIcon icon)
+		{
+			_selected = icon;
+			if (icon == null)
+				return false;
+			if (icon == _lastClickIcon && _time - _lastClickTime < DoubleClickSeconds)
+			{
+				_lastClickIcon = null;
+				OpenIcon(icon);
+				return true;
+			}
+			_lastClickIcon = icon;
+			_lastClickTime = _time;
+			return false;
 		}
 
 		IStorySession ActiveSession => _active?.Session;
@@ -381,6 +532,14 @@ namespace InfocomWorkbench
 					_dragDY = win.H - ly;
 					return;
 				}
+				if (win.Drawer != null)
+				{
+					var inDrawer = x >= win.TextX && y >= win.TextY && x < win.TextX + win.TextW && y < win.TextY + win.TextH
+						? IconAt(win.Drawer.Children, x - win.TextX, y - win.TextY)
+						: null;
+					ClickIcon(inDrawer);
+					return;
+				}
 				// Clicks in the text area go to the story (version 6 games use the mouse).
 				if (win.Session != null && x >= win.TextX && y >= win.TextY && x < win.TextX + win.TextW && y < win.TextY + win.TextH)
 					win.Session.Click(x - win.TextX, y - win.TextY);
@@ -393,20 +552,10 @@ namespace InfocomWorkbench
 				return;
 			}
 
-			var icon = IconAt(x, y);
-			foreach (var i in _icons)
-				i.Selected = i == icon;
+			var icon = IconAt(_icons, x, y);
 			_active = null;
-			if (icon != null)
+			if (!ClickIcon(icon) && icon != null)
 			{
-				if (icon == _lastClickIcon && _time - _lastClickTime < DoubleClickSeconds)
-				{
-					_lastClickIcon = null;
-					OpenStory(icon);
-					return;
-				}
-				_lastClickIcon = icon;
-				_lastClickTime = _time;
 				_drag = DragKind.Icon;
 				_dragIcon = icon;
 				_dragDX = x - icon.X;
@@ -471,9 +620,9 @@ namespace InfocomWorkbench
 		{
 			_menus = new List<Menu>();
 
-			var selected = _icons.FirstOrDefault(i => i.Selected);
+			var selected = _selected;
 			_menus.Add(new Menu("Workbench",
-				new MenuItem("Open", () => OpenStory(selected), selected != null),
+				new MenuItem("Open", () => OpenIcon(selected), selected != null),
 				new MenuItem("Rescan games", Rescan),
 				new MenuItem("About", () => OpenInfo("About", AboutText())),
 				new MenuItem("Quit", () => QuitRequested?.Invoke())));
@@ -570,7 +719,7 @@ namespace InfocomWorkbench
 			fb.Clear(Pen.Blue);
 
 			foreach (var icon in _icons)
-				DrawIcon(fb, icon);
+				DrawIcon(fb, icon, 0, 0);
 
 			DrawScreenTitle(fb);
 
@@ -601,12 +750,14 @@ namespace InfocomWorkbench
 			catch (Exception) { return 0; }
 		}
 
-		void DrawIcon(FrameBuffer fb, DiskIcon icon)
+		void DrawIcon(FrameBuffer fb, DiskIcon icon, int ox, int oy)
 		{
-			fb.Sprite(icon.X, icon.Y, Art.Disk, Art.PenFor, 1, icon.Selected);
+			bool selected = icon == _selected;
+			int x = ox + icon.X, y = oy + icon.Y;
+			fb.Sprite(x, y, icon.IsDrawer ? Art.Drawer : Art.Disk, Art.PenFor, 1, selected);
 			int labelW = icon.Label.Length * TopazFont.Width;
-			int lx = icon.X + DiskIcon.ArtWidth / 2 - labelW / 2;
-			fb.Text(lx, icon.Y + Art.Disk.Length + 2, icon.Label, Pen.White, icon.Selected ? Pen.Black : -1);
+			int lx = x + DiskIcon.ArtWidth / 2 - labelW / 2;
+			fb.Text(lx, y + Art.Disk.Length + 2, icon.Label, Pen.White, selected ? Pen.Black : -1);
 		}
 
 		void DrawDepthGadgets(FrameBuffer fb, int x, int y, bool onWhite)
@@ -673,6 +824,12 @@ namespace InfocomWorkbench
 			fb.SetClip(w.TextX, w.TextY, w.TextW, w.TextH);
 			if (w.Session != null)
 				w.Session.Draw(fb, w.TextX, w.TextY, w.TextW, w.TextH, active);
+			else if (w.Drawer != null)
+			{
+				LayoutDrawer(w);
+				foreach (var icon in w.Drawer.Children)
+					DrawIcon(fb, icon, w.TextX, w.TextY);
+			}
 			else if (w.InfoLines != null)
 				for (int i = 0; i < w.InfoLines.Length; i++)
 					fb.Text(w.TextX + 4, w.TextY + 3 + i * 8, w.InfoLines[i], Pen.White);
@@ -748,6 +905,8 @@ namespace InfocomWorkbench
 			public string Title;
 			public IStorySession Session;
 			public string[] InfoLines;
+			/// <summary>The drawer whose icons this window shows.</summary>
+			public DiskIcon Drawer;
 			public bool GuruShown;
 			/// <summary>A story with its own full screen and no window frame, as Infocom's version 6 interpreters ran.</summary>
 			public bool OwnScreen;
@@ -763,10 +922,14 @@ namespace InfocomWorkbench
 		sealed class DiskIcon
 		{
 			public const int ArtWidth = 30;
+			/// <summary>The story file, or for a drawer the folder (null for a series drawer).</summary>
 			public string Path;
 			public string Label;
+			/// <summary>Position on the desktop, or inside its drawer window's contents.</summary>
 			public int X, Y;
-			public bool Selected;
+			/// <summary>Set for a drawer: the icons it holds, in order.</summary>
+			public List<DiskIcon> Children;
+			public bool IsDrawer => Children != null;
 
 			public bool Contains(int x, int y)
 			{
@@ -775,6 +938,24 @@ namespace InfocomWorkbench
 				int labelW = Label.Length * TopazFont.Width;
 				int lx = X + ArtWidth / 2 - labelW / 2;
 				return x >= lx && x < lx + labelW && y >= Y + 16 && y < Y + 26;
+			}
+		}
+
+		sealed class Series
+		{
+			public readonly string Name;
+			readonly string[] _prefixes;
+
+			public Series(string name, params string[] prefixes)
+			{
+				Name = name;
+				_prefixes = prefixes;
+			}
+
+			public bool Matches(string label)
+			{
+				string key = new string(label.ToLowerInvariant().Where(char.IsLetterOrDigit).ToArray());
+				return _prefixes.Any(p => key.StartsWith(p, StringComparison.Ordinal));
 			}
 		}
 
