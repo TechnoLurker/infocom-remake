@@ -83,13 +83,13 @@ namespace InfocomWorkbench
 
 		/// <summary>
 		/// The mouse pointer, traced from a screenshot Grant supplied (the outlined arrow of later Workbench releases,
-		/// which he preferred over the 1.3 sprite). Colours 17-19 = R red (E44), D black (000), L light (ECA). Hot spot
+		/// which he preferred over the 1.3 sprite). Colours 17-19 = R red (D22), D black (000), L light (FCA). Hot spot
 		/// is the top-left pixel. Sprites are always lo-res, so each pixel is two screen pixels wide and one line tall.
 		/// </summary>
 		public static readonly string[] Pointer =
 		{
 			"DDDDDD     ",
-			"DLLLLD     ",
+			"DLLLLLD    ",
 			"DRRRRLD    ",
 			"DRRRLD     ",
 			"DRRRRLD    ",
@@ -101,25 +101,25 @@ namespace InfocomWorkbench
 			"        D  ",
 		};
 
-		/// <summary>Busy pointer in the 1.3 style: a sleepy "zZ" cloud, shown while a story is starting.</summary>
+		/// <summary>Busy pointer: the white "zZ" sleep cloud from the same reference, shown while a story is starting.</summary>
 		public static readonly string[] Busy =
 		{
-			"     DDDDDD     ",
-			"   DDLLLLLLDD   ",
-			"  DLLLLLLLLLLD  ",
-			" DLRRRLLLLLLLLD ",
-			" DLLLRLLRRRRRLD ",
-			"DLLLRLLLLLLRLLLD",
-			"DLLRRRLLLLRLLLLD",
-			"DLLLLLLLLRLLLLLD",
-			" DLLLLLLRLLLLLD ",
-			" DLLLLLRRRRRLLD ",
-			"  DLLLLLLLLLLD  ",
-			"   DDLLLLLLDD   ",
-			"     DDDDDD     ",
-			"   DLD          ",
-			"  DLD           ",
-			"  DD            ",
+			"    WWWW W      ",
+			"  WWWWWWWWW     ",
+			" WWDDDDWWWWW    ",
+			" WWWWDWWWWWWW   ",
+			"WWWWDWWWWWWWW   ",
+			"WWWDDDDWDDDDWW  ",
+			" WWWWWWWWWDWWW  ",
+			" WWWWWWWWDWWWWW ",
+			"  WWWWWWDDDDWW  ",
+			"    WWWWWWWWW   ",
+			"       WWWW     ",
+			"     WWW        ",
+			"    WWWWWW      ",
+			"     WWWW WW    ",
+			"          WWW   ",
+			"           W    ",
 		};
 
 		public static readonly string[] CheckMark =
