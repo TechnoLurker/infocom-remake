@@ -733,7 +733,8 @@ namespace InfocomWorkbench
 				DrawGuru(fb);
 
 			bool busy = _time < _busyUntil;
-			fb.Sprite(_mouseX, _mouseY, busy ? Art.Busy : Art.Pointer, Art.PenFor, 2);
+			// Sprites move in lo-res steps on an OCS Amiga, so the pointer snaps to even columns.
+			fb.Sprite(_mouseX & ~1, _mouseY, busy ? Art.Busy : Art.Pointer, Art.PenFor, 2);
 		}
 
 		void DrawScreenTitle(FrameBuffer fb)

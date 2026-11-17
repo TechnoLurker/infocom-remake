@@ -3,7 +3,7 @@ namespace InfocomWorkbench
 	/// <summary>Hand-drawn pixel art in the Workbench 1.3 style. Characters map to pens in PenFor.</summary>
 	public static class Art
 	{
-		// B blue, W white, K black, O orange; R/D/L pointer red, dark, light. Anything else is transparent.
+		// B blue, W white, K black, O orange; R/D/L pointer red, black, light (sprite colours 17-19). Anything else is transparent. Anything else is transparent.
 		public static int PenFor(char c)
 		{
 			switch (c)
@@ -59,35 +59,46 @@ namespace InfocomWorkbench
 			"                              ",
 		};
 
-		/// <summary>Mouse pointer. Drawn on lo-res pixels (each one two screen pixels wide).</summary>
+		/// <summary>
+		/// The Workbench 1.3 pointer, decoded from Intuition's default sprite data (plane 0 / plane 1 words:
+		/// C000/4000 7000/B000 3C00/4C00 3F00/4300 1FC0/20C0 1FC0/2000 0F00/1100 0D80/1280 04C0/0940
+		/// 0460/08A0 0020/0040). Colours 17-19 = R red (E44), D black (000), L light (ECA). Hot spot is the
+		/// top-left pixel. Sprites are always lo-res, so each pixel is two screen pixels wide and one line tall.
+		/// </summary>
 		public static readonly string[] Pointer =
 		{
-			"RR         ",
-			"DRRR       ",
-			" DRRRR     ",
-			" DRRRRRR   ",
-			"  DRRRRRRR ",
-			"  DRRRRRRRR",
-			"   DRRRL   ",
-			"   DRRLRR  ",
-			"    DR DRR ",
-			"    DR  DRR",
-			"     R   DR",
+			"RL              ",
+			"DRLL            ",
+			" DRRLL          ",
+			" DRRRRLL        ",
+			"  DRRRRRLL      ",
+			"  DRRRRRRR      ",
+			"   DRRRL        ",
+			"   DRRDRL       ",
+			"    DR DRL      ",
+			"    DR  DRL     ",
+			"         DR     ",
 		};
 
-		/// <summary>Busy pointer, shown while a story is starting.</summary>
+		/// <summary>Busy pointer in the 1.3 style: a sleepy "zZ" cloud, shown while a story is starting.</summary>
 		public static readonly string[] Busy =
 		{
-			"  DDDDDDD  ",
-			" DLLLLLLLD ",
-			"  DRRRRRD  ",
-			"   DRRRD   ",
-			"    DRD    ",
-			"    DLD    ",
-			"   DL LD   ",
-			"  DL R LD  ",
-			" DLRRRRRLD ",
-			"  DDDDDDD  ",
+			"     DDDDDD     ",
+			"   DDLLLLLLDD   ",
+			"  DLLLLLLLLLLD  ",
+			" DLRRRLLLLLLLLD ",
+			" DLLLRLLRRRRRLD ",
+			"DLLLRLLLLLLRLLLD",
+			"DLLRRRLLLLRLLLLD",
+			"DLLLLLLLLRLLLLLD",
+			" DLLLLLLRLLLLLD ",
+			" DLLLLLRRRRRLLD ",
+			"  DLLLLLLLLLLD  ",
+			"   DDLLLLLLDD   ",
+			"     DDDDDD     ",
+			"   DLD          ",
+			"  DLD           ",
+			"  DD            ",
 		};
 
 		public static readonly string[] CheckMark =
