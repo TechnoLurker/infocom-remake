@@ -32,7 +32,7 @@ namespace InfocomWorkbench
 		public static readonly uint[] Rgb =
 		{
 			0x0055AA, 0xFFFFFF, 0x000022, 0xFF8800,
-			0xEE4444, 0x000000, 0xEECCAA,
+			0xDD2222, 0x000000, 0xFFCCAA, // pointer colours 17-19, matched to Grant's reference image
 			0xFF0000, 0x000000,
 			// Z colours: black, red, green, yellow, blue (Workbench blue), magenta, cyan, white,
 			// light grey, medium grey, dark grey.
