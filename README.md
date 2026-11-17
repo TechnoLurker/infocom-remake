@@ -17,6 +17,11 @@ For a full-screen app: File > Build Settings > Windows, then Build. Put the `Gam
 ## Using it
 
 - Double-click a disk icon to start that story. Several can run at once.
+- Icons are in alphabetical order, in columns down the right-hand side of the screen, so the Z titles end up in the bottom-left corner of the group.
+- Series get a drawer: Zork (Zork I-III, Zork Zero, Beyond Zork), Enchanter (Enchanter, Sorcerer, Spellbreaker) and Planetfall (Planetfall, Stationfall). Double-click a drawer to open a window of its games. Matching ignores case, spaces and punctuation, so `Zork1.z3` and `Zork I.z3` both go in. A drawer appears once two games of a series are there; the list is `KnownSeries` in `Core/Workbench.cs`.
+- Any folder inside `Games` that holds story files is a drawer too, so you can make your own groups. A folder named like a series (for example `Games/Zork`) gets that series' loose games added to it.
+
+![Zork drawer open on the desktop](docs/preview/drawers.png)
 - Drag windows by the title bar. The top-right gadgets send a window to the front or back, the top-left one closes it, and the bottom-right one resizes it.
 - Hold the **right mouse button** for the menu bar: **Workbench** (Open, Rescan games, About, Quit), **Story** (Save, Restore, Restart, Quit story, Close window), **Display** (PAL 640x256, NTSC 640x200, Tall pixels).
 - Typing: Up and Down recall earlier commands. Page Up/Page Down or the mouse wheel scroll back. Any key continues past `[MORE]`.

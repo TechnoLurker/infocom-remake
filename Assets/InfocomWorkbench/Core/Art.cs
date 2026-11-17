@@ -39,6 +39,26 @@ namespace InfocomWorkbench
 			" KKKKKKKKKKKKKKKKKKKKKKKKKKKKK",
 		};
 
+		/// <summary>Drawer icon: a folder of stories (a series, or a sub-folder of Games). Same size as Disk.</summary>
+		public static readonly string[] Drawer =
+		{
+			"      KKKKKKKKKKKKKKKKKKKKKK  ",
+			"     KWWWWWWWWWWWWWWWWWWWWKK  ",
+			"    KWWWWWWWWWWWWWWWWWWWWKWK  ",
+			"   KWWWWWWWWWWWWWWWWWWWWKWWK  ",
+			"  KKKKKKKKKKKKKKKKKKKKKKWWWK  ",
+			"  KWWWWWWWWWWWWWWWWWWWWKWWWK  ",
+			"  KWWWWWWWWWWWWWWWWWWWWKWWWK  ",
+			"  KWWWWWWKKKKKKKWWWWWWWKWWWK  ",
+			"  KWWWWWWKOOOOOKWWWWWWWKWWWK  ",
+			"  KWWWWWWKKKKKKKWWWWWWWKWWWK  ",
+			"  KWWWWWWWWWWWWWWWWWWWWKWWK   ",
+			"  KWWWWWWWWWWWWWWWWWWWWKWK    ",
+			"  KWWWWWWWWWWWWWWWWWWWWKK     ",
+			"  KKKKKKKKKKKKKKKKKKKKKK      ",
+			"                              ",
+		};
+
 		/// <summary>Mouse pointer. Drawn on lo-res pixels (each one two screen pixels wide).</summary>
 		public static readonly string[] Pointer =
 		{
