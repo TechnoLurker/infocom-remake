@@ -32,9 +32,11 @@ namespace InfocomWorkbench
 
 	public static class StorySessions
 	{
-		/// <summary>Picks the right session for the story's Z-machine version.</summary>
+		/// <summary>Picks the right session: a TRS-80 program, or a story for its Z-machine version.</summary>
 		public static IStorySession Create(string storyPath, string savesDir)
 		{
+			if (Trs80.TrsProgram.IsTrsFile(storyPath))
+				return new Trs80.Trs80Session(storyPath, savesDir);
 			int version = 0;
 			try
 			{

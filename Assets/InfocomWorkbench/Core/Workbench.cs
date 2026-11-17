@@ -165,6 +165,8 @@ namespace InfocomWorkbench
 
 		static bool LooksLikeStory(string path)
 		{
+			if (Trs80.TrsProgram.IsTrsFile(path))
+				return Trs80.TrsProgram.Looks(path);
 			string ext = System.IO.Path.GetExtension(path).ToLowerInvariant();
 			bool known = ext.Length == 3 && ext[1] == 'z' && ext[2] >= '1' && ext[2] <= '8'
 				|| ext == ".dat" || ext == ".data" || ext == ".zcode";
@@ -239,7 +241,8 @@ namespace InfocomWorkbench
 				"No story files found yet.",
 				"",
 				"Copy your Infocom story files",
-				"(.z3, .z4, .z5, .z6 or .dat) into:",
+				"(.z3, .z4, .z5, .z6 or .dat) or TRS-80",
+				"programs (.cas or .cmd) into:",
 				"",
 			};
 			lines.AddRange(Chop(_gamesDir, 44));
